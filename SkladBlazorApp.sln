@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36717.8 d17.14
+VisualStudioVersion = 17.14.36717.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkladBlazorApp", "SkladBlazorApp\SkladBlazorApp.csproj", "{F2ECD0A1-A94A-4788-8C62-4DA1DA18AFC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkladBlazorApp.Shared", "SkladBlazorApp.Shared\SkladBlazorApp.Shared.csproj", "{EA51C573-7AE4-457A-B99B-A73A03EFC96B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkladBlazorApp.Server", "SkladBlazorApp.Server\SkladBlazorApp.Server.csproj", "{8858ED11-A732-4321-AA0D-4C1372A760C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{F2ECD0A1-A94A-4788-8C62-4DA1DA18AFC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2ECD0A1-A94A-4788-8C62-4DA1DA18AFC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2ECD0A1-A94A-4788-8C62-4DA1DA18AFC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA51C573-7AE4-457A-B99B-A73A03EFC96B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA51C573-7AE4-457A-B99B-A73A03EFC96B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA51C573-7AE4-457A-B99B-A73A03EFC96B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA51C573-7AE4-457A-B99B-A73A03EFC96B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8858ED11-A732-4321-AA0D-4C1372A760C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8858ED11-A732-4321-AA0D-4C1372A760C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8858ED11-A732-4321-AA0D-4C1372A760C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8858ED11-A732-4321-AA0D-4C1372A760C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
