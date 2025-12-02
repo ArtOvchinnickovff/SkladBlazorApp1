@@ -15,4 +15,8 @@
     <ProjectReference Include="..\SkladBlazorApp.Shared\SkladBlazorApp.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\" />
+  </ItemGroup>
+
 </Project>
