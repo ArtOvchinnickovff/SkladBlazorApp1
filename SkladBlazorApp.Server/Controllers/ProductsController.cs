@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Models;
+using SkladBlazorApp.Shared.ModelsDTO;
 
 namespace SkladBlazorApp.Server.Controllers
 {
@@ -25,6 +26,7 @@ namespace SkladBlazorApp.Server.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
+
             var product = await _context.Products.FindAsync(id);
 
             if (product == null)
@@ -34,26 +36,42 @@ namespace SkladBlazorApp.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Product>> Create(Product product)
+        public async Task<ActionResult<Product>> Create(CreateProductDto dto)
         {
+            var categoryExists = await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId);
+            if (!categoryExists)
+                return BadRequest("Категория не существует");
+
+            var product = new Product
+            {
+                Name = dto.Name,
+                ArticleNumber = dto.ArticleNumber,
+                Unit = dto.Unit,
+                Price = dto.Price,
+                Quantity = dto.Quantity,
+                CategoryId = dto.CategoryId,
+                CharacteristicsJson = dto.CharacteristicsJson
+            };
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        public async Task<IActionResult> UpdateProduct(int id, CreateProductDto dto)
         {
-            if (id != product.Id)
-                return BadRequest();
-
             var existing = await _context.Products.FindAsync(id);
             if (existing == null)
                 return NotFound();
 
-            existing.Name = product.Name;
-            existing.Quantity = product.Quantity;
-            existing.CategoryId = product.CategoryId;
+            existing.Name = dto.Name;
+            existing.ArticleNumber = dto.ArticleNumber;
+            existing.Unit = dto.Unit;
+            existing.Price = dto.Price;
+            existing.Quantity = dto.Quantity;
+            existing.CategoryId = dto.CategoryId;
+            existing.CharacteristicsJson = dto.CharacteristicsJson;
 
             await _context.SaveChangesAsync();
             return NoContent();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using SkladBlazorApp.Shared.ModelsDTO;
 
 namespace SkladBlazorApp.Server.Controllers
 {
@@ -31,24 +32,29 @@ namespace SkladBlazorApp.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<User>> Create(User user)
+        public async Task<ActionResult<User>> Create(CreateUsersDto userDto)
         {
+            var user = new User
+            {
+                Login = userDto.Login,
+                PasswordHash = userDto.Password,
+                Role = userDto.Role
+            };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, User user)
+        public async Task<IActionResult> UpdateUser(int id, CreateUsersDto userDto)
         {
-            if (id != user.Id) return BadRequest();
-
             var existing = await _context.Users.FindAsync(id);
-            if (existing == null) return NotFound();
+            if (existing == null)
+                return NotFound();
 
-            existing.Login = user.Login;
-            existing.PasswordHash = user.PasswordHash;
-            existing.Role = user.Role;
+            existing.Login = userDto.Login;
+            existing.PasswordHash = userDto.Password;
+            existing.Role = userDto.Role;
 
             await _context.SaveChangesAsync();
             return NoContent();

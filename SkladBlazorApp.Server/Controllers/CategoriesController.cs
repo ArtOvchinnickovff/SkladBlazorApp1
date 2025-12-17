@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Models;
+using SkladBlazorApp.Shared.ModelsDTO;
 using Microsoft.EntityFrameworkCore;
 
 namespace SkladBlazorApp.Server.Controllers
@@ -30,22 +31,29 @@ namespace SkladBlazorApp.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Category>> Create(Category category)
+        public async Task<ActionResult<Category>> Create(CreateCategoryDto dto)
         {
+            var category = new Category
+            {
+                Name = dto.Name,
+                Description = dto.Description
+            };
+
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, Category category)
+        public async Task<IActionResult> UpdateCategory(int id, CreateCategoryDto dto)
         {
-            if (id != category.Id) return BadRequest();
-
             var existing = await _context.Categories.FindAsync(id);
-            if (existing == null) return NotFound();
+            if (existing == null)
+                return NotFound();
 
-            existing.Name = category.Name;
+            existing.Name = dto.Name;
+            existing.Description = dto.Description;
 
             await _context.SaveChangesAsync();
             return NoContent();

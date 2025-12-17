@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Models;
+using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations;
 
 namespace SkladBlazorApp.Server.Controllers
 {
@@ -17,113 +17,107 @@ namespace SkladBlazorApp.Server.Controllers
             _context = context;
         }
 
-        // ======== ПРОДУКТЫ ========
-        [HttpGet("products")]
-        public async Task<IEnumerable<Product>> GetProducts(string? search = null, int? categoryId = null)
+        // ======== Приёмка товара ========
+        [HttpPost("receive")]
+        public async Task<IActionResult> ReceiveProduct(WarehouseActionDto dto)
         {
-            var query = _context.Products.Include(p => p.Category).AsQueryable();
+            var product = await _context.Products.FindAsync(dto.ProductId);
+            if (product == null) return NotFound("Продукт не найден");
 
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(p => p.Name.Contains(search));
+            product.Quantity += dto.Quantity;
 
-            if (categoryId.HasValue)
-                query = query.Where(p => p.CategoryId == categoryId.Value);
-
-            return await query.ToListAsync();
-        }
-
-        [HttpGet("products/{id}")]
-        public async Task<ActionResult<Product>> GetProduct(int id)
-        {
-            var product = await _context.Products
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (product == null) return NotFound();
-            return product;
-        }
-
-        [HttpPost("products")]
-        public async Task<ActionResult<Product>> AddProduct(Product product)
-        {
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
-        }
-
-        [HttpPut("products/{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
-        {
-            if (id != product.Id) return BadRequest();
-
-            var existing = await _context.Products.FindAsync(id);
-            if (existing == null) return NotFound();
-
-            existing.Name = product.Name;
-            existing.Quantity = product.Quantity;
-            existing.CategoryId = product.CategoryId;
-
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        [HttpDelete("products/{id}")]
-        public async Task<IActionResult> DeleteProduct(int id)
-        {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
-
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        // ======== КАТЕГОРИИ ========
-        [HttpGet("categories")]
-        public async Task<IEnumerable<Category>> GetCategories() =>
-            await _context.Categories.ToListAsync();
-
-        [HttpPost("categories")]
-        public async Task<ActionResult<Category>> AddCategory(Category category)
-        {
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetCategories), new { id = category.Id }, category);
-        }
-
-        // ======== ОПЕРАЦИИ СКЛАДА ========
-        [HttpPost("products/{id}/adjust")]
-        public async Task<IActionResult> AdjustQuantity(int id, int delta, string type = "manual", string? comment = null)
-        {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
-
-            product.Quantity += delta;
-
-            // Логируем операцию
-            var operation = new WarehouseOperation
+            _context.WarehouseOperations.Add(new WarehouseOperation
             {
-                ProductId = id,
-                Quantity = delta,
-                Type = type,
-                Comment = comment,
-                Date = DateTime.Now
-            };
-            _context.WarehouseOperations.Add(operation);
+                ProductId = dto.ProductId,
+                Quantity = dto.Quantity,
+                Type = "Приход",
+                Comment = dto.Comment,
+                Date = DateTime.UtcNow
+            });
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // Получение операций
-        [HttpGet("operations")]
-        public async Task<IEnumerable<WarehouseOperation>> GetOperations(int? productId = null)
+        // ======== Списание товара ========
+        [HttpPost("consume")]
+        public async Task<IActionResult> ConsumeProduct(WarehouseActionDto dto)
         {
-            var query = _context.WarehouseOperations.Include(o => o.Product).AsQueryable();
-            if (productId.HasValue)
-                query = query.Where(o => o.ProductId == productId.Value);
+            var product = await _context.Products.FindAsync(dto.ProductId);
+            if (product == null) return NotFound("Продукт не найден");
 
-            return await query.OrderByDescending(o => o.Date).ToListAsync();
+            if (dto.Quantity > product.Quantity)
+                return BadRequest("Недостаточно товара на складе");
+
+            product.Quantity -= dto.Quantity;
+
+            _context.WarehouseOperations.Add(new WarehouseOperation
+            {
+                ProductId = dto.ProductId,
+                Quantity = -dto.Quantity,
+                Type = "Расход",
+                Comment = dto.Comment,
+                Date = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // ======== Инвентаризация ========
+        [HttpPost("inventory")]
+        public async Task<IActionResult> InventoryProduct(WarehouseActionDto dto)
+        {
+            var product = await _context.Products.FindAsync(dto.ProductId);
+            if (product == null) return NotFound("Продукт не найден");
+
+            var delta = dto.Quantity - product.Quantity; // delta между фактом и текущим остатком
+            product.Quantity = dto.Quantity;
+
+            _context.WarehouseOperations.Add(new WarehouseOperation
+            {
+                ProductId = dto.ProductId,
+                Quantity = delta,
+                Type = "Инвентаризация",
+                Comment = dto.Comment,
+                Date = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // ======== Остатки товаров ========
+        [HttpGet("balance")]
+        public async Task<IEnumerable<ProductBalanceDto>> GetBalance()
+        {
+            return await _context.Products
+                .Select(p => new ProductBalanceDto
+                {
+                    ProductId = p.Id,
+                    ProductName = p.Name,
+                    Quantity = p.Quantity,
+                    Unit = p.Unit
+                })
+                .ToListAsync();
+        }
+
+        // ======== История операций по продукту ========
+        [HttpGet("history/{productId}")]
+        public async Task<IEnumerable<WarehouseOperationDto>> GetHistory(int productId)
+        {
+            return await _context.WarehouseOperations
+                .Where(o => o.ProductId == productId)
+                .OrderByDescending(o => o.Date)
+                .Select(o => new WarehouseOperationDto
+                {
+                    Date = o.Date,
+                    Quantity = o.Quantity,
+                    Type = o.Type,
+                    Comment = o.Comment,
+                    ProductName = o.Product!.Name
+                })
+                .ToListAsync();
         }
     }
 }
