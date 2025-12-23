@@ -3,6 +3,7 @@ using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Exceptions;
 using SkladBlazorApp.Shared.Models;
 using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations;
+using SkladBlazorApp.Shared.Enums;
 
 namespace SkladBlazorApp.Server.Services.Warehouse
 {
@@ -30,7 +31,7 @@ namespace SkladBlazorApp.Server.Services.Warehouse
             {
                 ProductId = dto.ProductId,
                 Quantity = dto.Quantity,
-                Type = "Приход",
+                OperationType = WarehouseOperationType.Incoming,
                 Comment = dto.Comment,
                 Date = DateTime.UtcNow
             });
@@ -50,11 +51,13 @@ namespace SkladBlazorApp.Server.Services.Warehouse
             if (dto.Quantity > product.Quantity)
                 throw new BusinessException("Недостаточно товара на складе");
 
+            product.Quantity -= dto.Quantity;
+
             _context.WarehouseOperations.Add(new WarehouseOperation
             {
                 ProductId = dto.ProductId,
                 Quantity = -dto.Quantity,
-                Type = "Расход",
+                OperationType = WarehouseOperationType.Outgoing,
                 Comment = dto.Comment,
                 Date = DateTime.UtcNow
             });
@@ -64,8 +67,6 @@ namespace SkladBlazorApp.Server.Services.Warehouse
 
         public async Task InventoryAsync(WarehouseActionDto dto)
         {
-           
-
             var product = await _context.Products.FindAsync(dto.ProductId);
             if (product == null)
                 throw new NotFoundException("Продукт не найден");
@@ -77,7 +78,7 @@ namespace SkladBlazorApp.Server.Services.Warehouse
             {
                 ProductId = dto.ProductId,
                 Quantity = delta,
-                Type = "Инвентаризация",
+                OperationType = WarehouseOperationType.InventoryAdjust,
                 Comment = dto.Comment,
                 Date = DateTime.UtcNow
             });
@@ -101,14 +102,14 @@ namespace SkladBlazorApp.Server.Services.Warehouse
         public async Task<List<WarehouseOperationDto>> GetHistoryAsync(int productId)
         {
             return await _context.WarehouseOperations
-                 .Include(o => o.Product)
+                .Include(o => o.Product)
                 .Where(o => o.ProductId == productId)
                 .OrderByDescending(o => o.Date)
                 .Select(o => new WarehouseOperationDto
                 {
                     Date = o.Date,
                     Quantity = o.Quantity,
-                    Type = o.Type,
+                    OperationType = o.OperationType,
                     Comment = o.Comment,
                     ProductName = o.Product!.Name
                 })

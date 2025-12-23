@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SkladBlazorApp.Shared.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,7 @@ namespace SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
     {
         public DateTime Date { get; set; }
         public int Quantity { get; set; }
-        public string Type { get; set; } = string.Empty;
+        public WarehouseOperationType OperationType { get; set; }
         public string? Comment { get; set; }
         public string ProductName { get; set; } = string.Empty;
     }

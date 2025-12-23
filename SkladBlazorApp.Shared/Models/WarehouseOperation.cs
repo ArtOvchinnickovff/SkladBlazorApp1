@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SkladBlazorApp.Shared.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,7 +18,7 @@ namespace SkladBlazorApp.Shared.Models
 
         public int Quantity { get; set; }  // + приход, - расход
 
-        public string Type { get; set; } = string.Empty; // "Приход", "Расход"
+        public WarehouseOperationType OperationType { get; set; }
 
         public string? Comment { get; set; }
     }
