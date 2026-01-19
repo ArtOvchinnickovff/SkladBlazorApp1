@@ -11,5 +11,6 @@ namespace SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
         public int ProductId { get; set; }
         public int Quantity { get; set; } // Для инвентаризации - это новое количество
         public string? Comment { get; set; }
+        public int UserId { get; set; }
     }
 }

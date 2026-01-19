@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkladBlazorApp.Server.Data;
@@ -7,6 +8,7 @@ using SkladBlazorApp.Shared.ModelsDTO;
 
 namespace SkladBlazorApp.Server.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -50,7 +52,8 @@ namespace SkladBlazorApp.Server.Controllers
                 Price = dto.Price,
                 Quantity = dto.Quantity,
                 CategoryId = dto.CategoryId,
-                CharacteristicsJson = dto.CharacteristicsJson
+                CharacteristicsJson = dto.CharacteristicsJson,
+              
             };
 
             _context.Products.Add(product);

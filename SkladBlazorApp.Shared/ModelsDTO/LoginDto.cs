@@ -5,21 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-
 namespace SkladBlazorApp.Shared.ModelsDTO
 {
-   public class CreateUsersDto
+    public class LoginDto
     {
         [Required]
-        [MinLength(4)]
-   
         public string Login { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6)]
         public string Password { get; set; } = string.Empty;
-
-        [Required]
-        public string Role { get; set; } = "Manager";
     }
 }

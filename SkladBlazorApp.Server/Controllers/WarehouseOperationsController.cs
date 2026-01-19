@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Server.Services.Warehouse;
@@ -8,6 +9,7 @@ using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations;
 
 namespace SkladBlazorApp.Server.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/warehouse")]
     public class WarehouseOperationsController : ControllerBase

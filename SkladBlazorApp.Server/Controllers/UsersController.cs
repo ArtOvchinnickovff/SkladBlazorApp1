@@ -1,12 +1,18 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using SkladBlazorApp.Server.Data;
-using SkladBlazorApp.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using SkladBlazorApp.Server.Data;
+
+using SkladBlazorApp.Server.Services.Validators;
+using SkladBlazorApp.Shared.Models;
 using SkladBlazorApp.Shared.ModelsDTO;
+
 
 namespace SkladBlazorApp.Server.Controllers
 {
+   
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -14,9 +20,12 @@ namespace SkladBlazorApp.Server.Controllers
 
         private readonly SkladDbContext _context;
 
+
         public UsersController(SkladDbContext context)
         {
             _context = context;
+
+
         }
 
         [HttpGet]
@@ -34,12 +43,19 @@ namespace SkladBlazorApp.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> Create(CreateUsersDto userDto)
         {
+           
+            if (await _context.Users.AnyAsync(u => u.Login == userDto.Login))
+                return BadRequest("Пользователь с таким логином уже существует");
+
+
+            var hasher = new PasswordHasher<User>();
             var user = new User
             {
                 Login = userDto.Login,
-                PasswordHash = userDto.Password,
                 Role = userDto.Role
             };
+            user.PasswordHash = hasher.HashPassword(user, userDto.Password);
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);

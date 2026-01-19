@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Shared.Models;
 using SkladBlazorApp.Shared.ModelsDTO;
-using Microsoft.EntityFrameworkCore;
 
 namespace SkladBlazorApp.Server.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class CategoriesController : ControllerBase
@@ -33,6 +35,9 @@ namespace SkladBlazorApp.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<Category>> Create(CreateCategoryDto dto)
         {
+            if (await _context.Categories.AnyAsync(c => c.Name == dto.Name))
+                return BadRequest("Категория с таким названием уже существует");
+
             var category = new Category
             {
                 Name = dto.Name,

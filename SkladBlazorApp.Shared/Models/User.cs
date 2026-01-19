@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace SkladBlazorApp.Shared.Models
 {
     public class User
