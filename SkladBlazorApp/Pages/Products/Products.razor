@@ -1,0 +1,199 @@
+﻿@page "/products"
+@attribute [Authorize(Roles = "Admin,Manager")]
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SkladBlazorApp.Shared
+@inject HttpClient Http
+
+<AuthorizeView Roles="Admin,Manager" Context="authContext">
+    <Authorized Context="authContext">
+
+        <h3 class="mb-3">Товары склада</h3>
+
+        <!-- ФИЛЬТР -->
+        <div class="mb-3">
+            <select class="form-select w-25" @onchange="FilterChanged">
+                <option value="">Все категории</option>
+                <option value="Кабель">Кабель</option>
+                <option value="Свет">Свет</option>
+            </select>
+        </div>
+
+        <!-- КНОПКА ДОБАВИТЬ -->
+        <button class="btn btn-success mb-3" @onclick="ShowCreateForm">
+            Добавить товар
+        </button>
+
+        <!-- ФОРМА СОЗДАНИЯ / РЕДАКТИРОВАНИЯ -->
+        @if (showForm)
+        {
+            <div class="card p-3 mb-3">
+                <EditForm Model="currentProduct" OnValidSubmit="SaveProduct">
+                    <DataAnnotationsValidator />
+
+                    <div class="row">
+                        <div class="col">
+                            <InputText class="form-control" @bind-Value="currentProduct.Name" placeholder="Название" />
+                        </div>
+
+                        <div class="col">
+                            <InputText class="form-control" @bind-Value="currentProduct.Category" placeholder="Категория" />
+                        </div>
+
+                        <div class="col">
+                            <InputNumber class="form-control" @bind-Value="currentProduct.Quantity" placeholder="Количество" />
+                        </div>
+
+                        <div class="col">
+                            <InputNumber class="form-control" @bind-Value="currentProduct.Price" placeholder="Цена" />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">Сохранить</button>
+                    <button type="button" class="btn btn-secondary mt-3 ms-2" @onclick="CancelEdit">
+                        Отмена
+                    </button>
+                </EditForm>
+            </div>
+        }
+
+        <!-- ТАБЛИЦА -->
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Категория</th>
+                    <th>Количество</th>
+                    <th>Цена</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in filteredProducts)
+                {
+                    <tr>
+                        <td>@product.Name</td>
+                        <td>@product.Category</td>
+                        <td>@product.Quantity</td>
+                        <td>@product.Price</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning"
+                                    @onclick="() => EditProduct(product)">
+                                Ред.
+                            </button>
+
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-danger ms-2"
+                                            @onclick="() => DeleteProduct(product.Id)">
+                                        Удалить
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+    </Authorized>
+
+    <NotAuthorized>
+        <p class="text-danger">Доступ запрещён</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    private List<ProductDto> products = new();
+    private List<ProductDto> filteredProducts = new();
+
+    private ProductDto currentProduct = new();
+    private bool showForm = false;
+    private string selectedCategory = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        products = await Http.GetFromJsonAsync<List<ProductDto>>("api/products") ?? new();
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrEmpty(selectedCategory))
+            filteredProducts = products;
+        else
+            filteredProducts = products
+                .Where(p => p.Category == selectedCategory)
+                .ToList();
+    }
+
+    private void FilterChanged(ChangeEventArgs e)
+    {
+        selectedCategory = e.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void ShowCreateForm()
+    {
+        currentProduct = new ProductDto();
+        showForm = true;
+    }
+
+    private void EditProduct(ProductDto product)
+    {
+        currentProduct = new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Category = product.Category,
+            Quantity = product.Quantity,
+            Price = product.Price
+        };
+        showForm = true;
+    }
+
+    private async Task SaveProduct()
+    {
+        if (currentProduct.Quantity < 0)
+            return; // защита от минуса
+
+        if (currentProduct.Id == 0)
+        {
+            await Http.PostAsJsonAsync("api/products", currentProduct);
+        }
+        else
+        {
+            await Http.PutAsJsonAsync($"api/products/{currentProduct.Id}", currentProduct);
+        }
+
+        showForm = false;
+        await LoadProducts();
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        await Http.DeleteAsync($"api/products/{id}");
+        await LoadProducts();
+    }
+
+    private void CancelEdit()
+    {
+        showForm = false;
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Category { get; set; } = "";
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+    }
+}

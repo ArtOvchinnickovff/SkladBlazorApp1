@@ -26,8 +26,15 @@ namespace SkladBlazorApp.Server.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var token = await _authService.LoginAsync(dto);
-            return Ok(new { token });
+            try
+            {
+                var token = await _authService.LoginAsync(dto);
+                return Ok(new { token });
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new { error = ex.Message });
+            }
         }
     }
 }

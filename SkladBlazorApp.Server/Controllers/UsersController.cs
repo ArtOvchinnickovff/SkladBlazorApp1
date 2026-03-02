@@ -12,7 +12,7 @@ using SkladBlazorApp.Shared.ModelsDTO;
 
 namespace SkladBlazorApp.Server.Controllers
 {
-   
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -69,8 +69,13 @@ namespace SkladBlazorApp.Server.Controllers
                 return NotFound();
 
             existing.Login = userDto.Login;
-            existing.PasswordHash = userDto.Password;
             existing.Role = userDto.Role;
+
+            if (!string.IsNullOrWhiteSpace(userDto.Password))
+            {
+                var hasher = new PasswordHasher<User>();
+                existing.PasswordHash = hasher.HashPassword(existing, userDto.Password);
+            }
 
             await _context.SaveChangesAsync();
             return NoContent();
