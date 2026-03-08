@@ -5,10 +5,10 @@
 @using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
 @using SkladBlazorApp.Shared.Enums
 @inject HttpClient Http
-
+@inject IJSRuntime JS
 
 <AuthorizeView Roles="Admin,Manager">
-    <Authorized Context="authContext">
+    <Authorized>
         <h3 class="mb-4">Отчеты и аналитика</h3>
 
         <!-- Вкладки -->
@@ -25,7 +25,12 @@
 
         @if (activeTab == 1)
         {
-            <h5>Текущие остатки товаров</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Текущие остатки товаров</h5>
+                <button class="btn btn-success" @onclick="ExportBalanceToCsv">
+                    📥 Экспорт остатков в CSV
+                </button>
+            </div>
 
             <!-- Фильтры остатков -->
             <div class="row mb-3">
@@ -80,7 +85,12 @@
         }
         else if (activeTab == 2)
         {
-            <h5>Движение товаров за период</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Движение товаров за период</h5>
+                <button class="btn btn-success" @onclick="ExportMovementToCsv">
+                    📥 Экспорт движения в CSV
+                </button>
+            </div>
 
             <!-- Фильтры движения -->
             <div class="row mb-3">
@@ -159,7 +169,8 @@
         {
             filteredProducts = products
                 .Where(p => (!selectedCategoryId.HasValue || p.CategoryId == selectedCategoryId)
-                         && (string.IsNullOrWhiteSpace(searchTerm) || p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                         && (string.IsNullOrWhiteSpace(searchTerm) ||
+                             p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(p => p.Name)
                 .ToList();
         }
@@ -182,4 +193,51 @@
         WarehouseOperationType.InventoryAdjust => "text-primary",
         _ => ""
     };
+
+    // ==================== ЭКСПОРТ В CSV ====================
+    private async Task ExportBalanceToCsv()
+    {
+        var csv = "Наименование;Артикул;Категория;Количество;Цена;Стоимость\n";
+        foreach (var p in filteredProducts)
+        {
+            var total = p.Quantity * p.Price;
+            var catName = GetCategoryName(p.CategoryId);
+            csv += $"\"{p.Name}\";\"{p.ArticleNumber}\";\"{catName}\";{p.Quantity};{p.Price};{total}\n";
+        }
+        await DownloadCsv(csv, $"Остатки_на_складе_{DateTime.Now:yyyy-MM-dd}.csv");
+    }
+
+    private async Task ExportMovementToCsv()
+    {
+        var csv = "Дата;Товар;Тип операции;Количество;Комментарий\n";
+        foreach (var op in filteredHistory)
+        {
+            var typeName = op.OperationType switch
+            {
+                WarehouseOperationType.Incoming => "Приход",
+                WarehouseOperationType.Outgoing => "Расход",
+                WarehouseOperationType.InventoryAdjust => "Инвентаризация",
+                _ => op.OperationType.ToString()
+            };
+            csv += $"\"{op.Date:dd.MM.yyyy HH:mm}\";\"{op.ProductName}\";{typeName};{op.Quantity};\"{op.Comment ?? ""}\"\n";
+        }
+        await DownloadCsv(csv, $"Движение_товаров_{DateTime.Now:yyyy-MM-dd}.csv");
+    }
+
+    private async Task DownloadCsv(string csvContent, string fileName)
+    {
+        // === ИСПРАВЛЕНИЕ: добавляем UTF-8 BOM + charset ===
+        var preamble = System.Text.Encoding.UTF8.GetPreamble();           // EF BB BF
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+
+        var fullBytes = new byte[preamble.Length + bytes.Length];
+        preamble.CopyTo(fullBytes, 0);
+        bytes.CopyTo(fullBytes, preamble.Length);
+
+        var base64 = Convert.ToBase64String(fullBytes);
+
+        await JS.InvokeVoidAsync("downloadFile",
+            $"data:text/csv;charset=utf-8;base64,{base64}",
+            fileName);
+    }
 }
