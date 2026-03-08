@@ -1,0 +1,147 @@
+﻿@page "/operations"
+@attribute [Authorize(Roles = "Admin,Manager")]
+@using Microsoft.AspNetCore.Authorization
+@using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
+@using SkladBlazorApp.Shared.Models
+@using SkladBlazorApp.Shared.Enums
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<AuthorizeView Roles="Admin,Manager">
+    <Authorized Context="authContext">
+        <h3 class="mb-3">Складские операции</h3>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">
+                @errorMessage
+            </div>
+        }
+
+        <!-- Вкладки / кнопки операций -->
+        <div class="btn-group mb-3">
+            <button class="btn @(activeTab == 1 ? "btn-primary" : "btn-outline-primary")" @onclick="() => activeTab = 1">Приход</button>
+            <button class="btn @(activeTab == 2 ? "btn-primary" : "btn-outline-primary")" @onclick="() => activeTab = 2">Расход</button>
+            <button class="btn @(activeTab == 3 ? "btn-primary" : "btn-outline-primary")" @onclick="() => activeTab = 3">Инвентаризация</button>
+        </div>
+
+        <!-- ФОРМА ОПЕРАЦИИ -->
+        @if (activeTab == 1 || activeTab == 2 || activeTab == 3)
+        {
+            <div class="card p-3 mb-4">
+                <EditForm Model="actionDto" OnValidSubmit="ExecuteOperation">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label>Товар</label>
+                            <InputSelect class="form-select" @bind-Value="actionDto.ProductId">
+                                <option value="0">Выберите товар...</option>
+                                @foreach (var p in products)
+                                {
+                                    <option value="@p.Id">@p.Name (@p.ArticleNumber)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Количество</label>
+                            <InputNumber class="form-control" @bind-Value="actionDto.Quantity" />
+                        </div>
+                        <div class="col-md-5">
+                            <label>Комментарий</label>
+                            <InputText class="form-control" @bind-Value="actionDto.Comment" />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success mt-3">
+                        @(activeTab == 1 ? "Принять приход" : activeTab == 2 ? "Списать расход" : "Провести инвентаризацию")
+                    </button>
+                </EditForm>
+            </div>
+        }
+
+        <!-- ИСТОРИЯ ОПЕРАЦИЙ -->
+        <h5>История операций</h5>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Товар</th>
+                    <th>Тип</th>
+                    <th>Количество</th>
+                    <th>Комментарий</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var op in history)
+                {
+                    <tr>
+
+                        <td>@op.Date.ToString("dd.MM.yyyy HH:mm")</td>
+
+                        <td>@op.ProductName</td>
+
+                        <td class="@(op.OperationType == WarehouseOperationType.Incoming ? "text-success"
+                            : op.OperationType == WarehouseOperationType.Outgoing ? "text-danger"
+                            : "text-primary")">
+                        @op.OperationType
+                    </td>
+
+                        <td>@op.Quantity</td>
+
+                        <td>@op.Comment</td>
+
+                    </tr>
+                                }
+            </tbody>
+        </table>
+    </Authorized>
+    <NotAuthorized>
+        <p class="text-danger">Доступ запрещён</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private WarehouseActionDto actionDto = new();
+    private int activeTab = 1;                    // 1=Приход, 2=Расход, 3=Инвентаризация
+    private List<Product> products = new();
+    private List<WarehouseOperationDto> history = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
+        await LoadHistory();
+    }
+
+    private async Task ExecuteOperation()
+    {
+        string url = activeTab switch
+        {
+            1 => "api/warehouse/receive",
+            2 => "api/warehouse/consume",
+            3 => "api/warehouse/inventory",
+            _ => ""
+        };
+
+        var response = await Http.PostAsJsonAsync(url, actionDto);
+
+        if (response.IsSuccessStatusCode)
+        {
+            actionDto = new();     // очищаем форму
+            errorMessage = null;   // очищаем ошибку
+            await LoadHistory();   // обновляем историю
+        }
+        else
+        {
+            errorMessage = "Ошибка выполнения операции";
+        }
+    }
+
+    private async Task LoadHistory()
+    {
+        // Можно загрузить историю по выбранному товару или все
+        history = await Http.GetFromJsonAsync<List<WarehouseOperationDto>>("api/warehouse/history/0") ?? new();
+    }
+
+    private string? errorMessage;
+}

@@ -101,9 +101,14 @@ namespace SkladBlazorApp.Server.Services.Warehouse
 
         public async Task<List<WarehouseOperationDto>> GetHistoryAsync(int productId)
         {
-            return await _context.WarehouseOperations
+            var query = _context.WarehouseOperations
                 .Include(o => o.Product)
-                .Where(o => o.ProductId == productId)
+                .AsQueryable();
+
+            if (productId != 0)
+                query = query.Where(o => o.ProductId == productId);
+
+            return await query
                 .OrderByDescending(o => o.Date)
                 .Select(o => new WarehouseOperationDto
                 {

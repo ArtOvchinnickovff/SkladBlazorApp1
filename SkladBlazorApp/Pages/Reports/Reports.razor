@@ -1,0 +1,185 @@
+﻿@page "/reports"
+@attribute [Authorize(Roles = "Admin,Manager")]
+@using Microsoft.AspNetCore.Authorization
+@using SkladBlazorApp.Shared.Models
+@using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
+@using SkladBlazorApp.Shared.Enums
+@inject HttpClient Http
+
+
+<AuthorizeView Roles="Admin,Manager">
+    <Authorized Context="authContext">
+        <h3 class="mb-4">Отчеты и аналитика</h3>
+
+        <!-- Вкладки -->
+        <div class="btn-group mb-4">
+            <button class="btn @(activeTab == 1 ? "btn-primary" : "btn-outline-primary")"
+                    @onclick="() => { activeTab = 1; ApplyFilters(); }">
+                Остатки на складе
+            </button>
+            <button class="btn @(activeTab == 2 ? "btn-primary" : "btn-outline-primary")"
+                    @onclick="() => { activeTab = 2; ApplyFilters(); }">
+                Движение товаров
+            </button>
+        </div>
+
+        @if (activeTab == 1)
+        {
+            <h5>Текущие остатки товаров</h5>
+
+            <!-- Фильтры остатков -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Категория</label>
+                    <InputSelect class="form-select" @bind-Value="selectedCategoryId" @onchange="ApplyFilters">
+                        <option value="">Все категории</option>
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat.Id">@cat.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label>Поиск по названию</label>
+                    <InputText class="form-control" @bind-Value="searchTerm" @oninput="ApplyFilters" />
+                </div>
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Наименование</th>
+                        <th>Артикул</th>
+                        <th>Категория</th>
+                        <th class="text-end">Количество</th>
+                        <th class="text-end">Цена, ₽</th>
+                        <th class="text-end">Стоимость, ₽</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in filteredProducts)
+                    {
+                        var total = p.Quantity * p.Price;
+                        <tr>
+                            <td>@p.Name</td>
+                            <td>@p.ArticleNumber</td>
+                            <td>@GetCategoryName(p.CategoryId)</td>
+                            <td class="text-end">@p.Quantity @p.Unit</td>
+                            <td class="text-end">@p.Price.ToString("N2")</td>
+                            <td class="text-end fw-bold">@total.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <td colspan="5"><strong>Итого на складе:</strong></td>
+                        <td class="text-end fw-bold">@totalStockValue.ToString("N2") ₽</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+        else if (activeTab == 2)
+        {
+            <h5>Движение товаров за период</h5>
+
+            <!-- Фильтры движения -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label>С даты</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-md-3">
+                    <label>По дату</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="ApplyFilters">Применить</button>
+                </div>
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Товар</th>
+                        <th>Тип операции</th>
+                        <th class="text-end">Количество</th>
+                        <th>Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var op in filteredHistory)
+                    {
+                        <tr>
+                            <td>@op.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@op.ProductName</td>
+                            <td class="@GetOperationClass(op.OperationType)">@op.OperationType</td>
+                            <td class="text-end">@op.Quantity</td>
+                            <td>@op.Comment</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p class="text-danger">Доступ запрещён</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private int activeTab = 1;
+
+    private List<Category> categories = new();
+    private List<Product> products = new();
+    private List<WarehouseOperationDto> allHistory = new();
+
+    private List<Product> filteredProducts = new();
+    private List<WarehouseOperationDto> filteredHistory = new();
+
+    private int? selectedCategoryId;
+    private string searchTerm = "";
+    private DateTime fromDate = DateTime.Now.AddMonths(-1);
+    private DateTime toDate = DateTime.Now;
+
+    private decimal totalStockValue => filteredProducts.Sum(p => p.Quantity * p.Price);
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await Http.GetFromJsonAsync<List<Category>>("api/categories") ?? new();
+        products = await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
+        allHistory = await Http.GetFromJsonAsync<List<WarehouseOperationDto>>("api/warehouse/history/0") ?? new();
+
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        if (activeTab == 1)
+        {
+            filteredProducts = products
+                .Where(p => (!selectedCategoryId.HasValue || p.CategoryId == selectedCategoryId)
+                         && (string.IsNullOrWhiteSpace(searchTerm) || p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(p => p.Name)
+                .ToList();
+        }
+        else
+        {
+            filteredHistory = allHistory
+                .Where(h => h.Date.Date >= fromDate.Date && h.Date.Date <= toDate.Date)
+                .OrderByDescending(h => h.Date)
+                .ToList();
+        }
+    }
+
+    private string GetCategoryName(int categoryId) =>
+        categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "—";
+
+    private string GetOperationClass(WarehouseOperationType type) => type switch
+    {
+        WarehouseOperationType.Incoming => "text-success",
+        WarehouseOperationType.Outgoing => "text-danger",
+        WarehouseOperationType.InventoryAdjust => "text-primary",
+        _ => ""
+    };
+}
