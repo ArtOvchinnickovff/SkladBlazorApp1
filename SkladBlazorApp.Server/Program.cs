@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using SkladBlazorApp.Server.Data;
 using SkladBlazorApp.Server.Server.Middlewares;
 using SkladBlazorApp.Server.Services.Auth;
+using SkladBlazorApp.Server.Services.Report;
 using SkladBlazorApp.Server.Services.Warehouse;
 using System.Text;
 
@@ -80,6 +81,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<IReportService, ReportService>();
 
 
 var app = builder.Build();

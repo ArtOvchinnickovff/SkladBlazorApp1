@@ -9,14 +9,15 @@
 
 <AuthorizeView Roles="Admin,Manager">
     <Authorized>
+
         <h3 class="mb-4">Отчеты и аналитика</h3>
 
-        <!-- Вкладки -->
         <div class="btn-group mb-4">
             <button class="btn @(activeTab == 1 ? "btn-primary" : "btn-outline-primary")"
                     @onclick="() => { activeTab = 1; ApplyFilters(); }">
                 Остатки на складе
             </button>
+
             <button class="btn @(activeTab == 2 ? "btn-primary" : "btn-outline-primary")"
                     @onclick="() => { activeTab = 2; ApplyFilters(); }">
                 Движение товаров
@@ -25,119 +26,201 @@
 
         @if (activeTab == 1)
         {
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between mb-3">
                 <h5>Текущие остатки товаров</h5>
-                <button class="btn btn-success" @onclick="ExportBalanceToCsv">
-                    📥 Экспорт остатков в CSV
-                </button>
+
+                <div>
+                    <button class="btn btn-primary me-2" @onclick="ExportBalanceExcel">
+                        📦 Excel со сводной таблицей
+                    </button>
+                </div>
             </div>
 
-            <!-- Фильтры остатков -->
             <div class="row mb-3">
+
                 <div class="col-md-4">
                     <label>Категория</label>
-                    <InputSelect class="form-select" @bind-Value="selectedCategoryId" @onchange="ApplyFilters">
+
+                    <InputSelect class="form-select"
+                                 @bind-Value="selectedCategoryId"
+                                 @onchange="ApplyFilters">
+
                         <option value="">Все категории</option>
+
                         @foreach (var cat in categories)
                         {
                             <option value="@cat.Id">@cat.Name</option>
                         }
+
                     </InputSelect>
                 </div>
+
                 <div class="col-md-4">
-                    <label>Поиск по названию</label>
-                    <InputText class="form-control" @bind-Value="searchTerm" @oninput="ApplyFilters" />
+                    <label>Поиск</label>
+                    <InputText class="form-control"
+                               @bind-Value="searchTerm"
+                               @oninput="ApplyFilters" />
                 </div>
+
             </div>
 
             <table class="table table-striped">
+
                 <thead>
                     <tr>
                         <th>Наименование</th>
                         <th>Артикул</th>
                         <th>Категория</th>
                         <th class="text-end">Количество</th>
-                        <th class="text-end">Цена, ₽</th>
-                        <th class="text-end">Стоимость, ₽</th>
+                        <th class="text-end">Цена</th>
+                        <th class="text-end">Стоимость</th>
                     </tr>
                 </thead>
+
                 <tbody>
+
                     @foreach (var p in filteredProducts)
                     {
                         var total = p.Quantity * p.Price;
+
                         <tr>
+
                             <td>@p.Name</td>
                             <td>@p.ArticleNumber</td>
                             <td>@GetCategoryName(p.CategoryId)</td>
+
                             <td class="text-end">@p.Quantity @p.Unit</td>
                             <td class="text-end">@p.Price.ToString("N2")</td>
                             <td class="text-end fw-bold">@total.ToString("N2")</td>
+
                         </tr>
                     }
+
                 </tbody>
+
                 <tfoot>
+
                     <tr class="table-info">
-                        <td colspan="5"><strong>Итого на складе:</strong></td>
-                        <td class="text-end fw-bold">@totalStockValue.ToString("N2") ₽</td>
+
+                        <td colspan="5"><b>Итого:</b></td>
+                        <td class="text-end fw-bold">
+                            @totalStockValue.ToString("N2") ₽
+                        </td>
+
                     </tr>
+
                 </tfoot>
+
             </table>
+
         }
-        else if (activeTab == 2)
+
+        @if (activeTab == 2)
         {
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5>Движение товаров за период</h5>
-                <button class="btn btn-success" @onclick="ExportMovementToCsv">
-                    📥 Экспорт движения в CSV
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <h5>Движение товаров</h5>
+
+                <button class="btn btn-success"
+                        @onclick="ExportMovementExcel">
+
+                    📊 Экспорт движения Excel
+
                 </button>
+
             </div>
 
-            <!-- Фильтры движения -->
             <div class="row mb-3">
+
                 <div class="col-md-3">
+
                     <label>С даты</label>
-                    <InputDate class="form-control" @bind-Value="fromDate" />
+
+                    <InputDate class="form-control"
+                               @bind-Value="fromDate" />
+
                 </div>
+
                 <div class="col-md-3">
+
                     <label>По дату</label>
-                    <InputDate class="form-control" @bind-Value="toDate" />
+
+                    <InputDate class="form-control"
+                               @bind-Value="toDate" />
+
                 </div>
+
                 <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" @onclick="ApplyFilters">Применить</button>
+
+                    <button class="btn btn-primary w-100"
+                            @onclick="ApplyFilters">
+
+                        Применить
+
+                    </button>
+
                 </div>
+
             </div>
 
             <table class="table table-striped">
+
                 <thead>
+
                     <tr>
+
                         <th>Дата</th>
                         <th>Товар</th>
                         <th>Тип операции</th>
                         <th class="text-end">Количество</th>
                         <th>Комментарий</th>
+
                     </tr>
+
                 </thead>
+
                 <tbody>
+
                     @foreach (var op in filteredHistory)
                     {
+
                         <tr>
+
                             <td>@op.Date.ToString("dd.MM.yyyy HH:mm")</td>
+
                             <td>@op.ProductName</td>
-                            <td class="@GetOperationClass(op.OperationType)">@op.OperationType</td>
+
+                            <td class="@GetOperationClass(op.OperationType)">
+                                @op.OperationType
+                            </td>
+
                             <td class="text-end">@op.Quantity</td>
+
                             <td>@op.Comment</td>
+
                         </tr>
+
                     }
+
                 </tbody>
+
             </table>
+
         }
+
     </Authorized>
+
     <NotAuthorized>
+
         <p class="text-danger">Доступ запрещён</p>
+
     </NotAuthorized>
+
 </AuthorizeView>
 
 @code {
+
     private int activeTab = 1;
 
     private List<Category> categories = new();
@@ -149,42 +232,70 @@
 
     private int? selectedCategoryId;
     private string searchTerm = "";
+
     private DateTime fromDate = DateTime.Now.AddMonths(-1);
     private DateTime toDate = DateTime.Now;
 
-    private decimal totalStockValue => filteredProducts.Sum(p => p.Quantity * p.Price);
+    private decimal totalStockValue =>
+    filteredProducts.Sum(p => p.Quantity * p.Price);
 
     protected override async Task OnInitializedAsync()
     {
-        categories = await Http.GetFromJsonAsync<List<Category>>("api/categories") ?? new();
-        products = await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
-        allHistory = await Http.GetFromJsonAsync<List<WarehouseOperationDto>>("api/warehouse/history/0") ?? new();
+
+        categories =
+        await Http.GetFromJsonAsync<List<Category>>("api/categories") ?? new();
+
+        products =
+        await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
+
+        allHistory =
+        await Http.GetFromJsonAsync<List<WarehouseOperationDto>>("api/warehouse/history/0") ?? new();
 
         ApplyFilters();
+
     }
 
     private void ApplyFilters()
     {
+
         if (activeTab == 1)
         {
-            filteredProducts = products
-                .Where(p => (!selectedCategoryId.HasValue || p.CategoryId == selectedCategoryId)
-                         && (string.IsNullOrWhiteSpace(searchTerm) ||
-                             p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(p => p.Name)
-                .ToList();
+
+            filteredProducts =
+            products
+            .Where(p =>
+            (!selectedCategoryId.HasValue || p.CategoryId == selectedCategoryId)
+            &&
+            (string.IsNullOrWhiteSpace(searchTerm)
+            ||
+            p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+
+            .OrderBy(p => p.Name)
+
+            .ToList();
+
         }
+
         else
         {
-            filteredHistory = allHistory
-                .Where(h => h.Date.Date >= fromDate.Date && h.Date.Date <= toDate.Date)
-                .OrderByDescending(h => h.Date)
-                .ToList();
+
+            filteredHistory =
+            allHistory
+            .Where(h =>
+            h.Date.Date >= fromDate.Date
+            &&
+            h.Date.Date <= toDate.Date)
+
+            .OrderByDescending(h => h.Date)
+
+            .ToList();
+
         }
+
     }
 
     private string GetCategoryName(int categoryId) =>
-        categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "—";
+    categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "—";
 
     private string GetOperationClass(WarehouseOperationType type) => type switch
     {
@@ -194,50 +305,44 @@
         _ => ""
     };
 
-    // ==================== ЭКСПОРТ В CSV ====================
-    private async Task ExportBalanceToCsv()
+    private async Task ExportMovementExcel()
     {
-        var csv = "Наименование;Артикул;Категория;Количество;Цена;Стоимость\n";
-        foreach (var p in filteredProducts)
-        {
-            var total = p.Quantity * p.Price;
-            var catName = GetCategoryName(p.CategoryId);
-            csv += $"\"{p.Name}\";\"{p.ArticleNumber}\";\"{catName}\";{p.Quantity};{p.Price};{total}\n";
-        }
-        await DownloadCsv(csv, $"Остатки_на_складе_{DateTime.Now:yyyy-MM-dd}.csv");
+
+        var bytes =
+        await Http.GetByteArrayAsync("api/reports/movement-excel");
+
+        var base64 =
+        Convert.ToBase64String(bytes);
+
+        await JS.InvokeVoidAsync(
+        "downloadFile",
+
+        $"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64}",
+
+        $"Движение_товаров_{DateTime.Now:yyyy-MM-dd}.xlsx"
+
+        );
+
     }
 
-    private async Task ExportMovementToCsv()
+    private async Task ExportBalanceExcel()
     {
-        var csv = "Дата;Товар;Тип операции;Количество;Комментарий\n";
-        foreach (var op in filteredHistory)
-        {
-            var typeName = op.OperationType switch
-            {
-                WarehouseOperationType.Incoming => "Приход",
-                WarehouseOperationType.Outgoing => "Расход",
-                WarehouseOperationType.InventoryAdjust => "Инвентаризация",
-                _ => op.OperationType.ToString()
-            };
-            csv += $"\"{op.Date:dd.MM.yyyy HH:mm}\";\"{op.ProductName}\";{typeName};{op.Quantity};\"{op.Comment ?? ""}\"\n";
-        }
-        await DownloadCsv(csv, $"Движение_товаров_{DateTime.Now:yyyy-MM-dd}.csv");
+
+        var bytes =
+        await Http.GetByteArrayAsync("api/reports/balance-excel");
+
+        var base64 =
+        Convert.ToBase64String(bytes);
+
+        await JS.InvokeVoidAsync(
+        "downloadFile",
+
+        $"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64}",
+
+        $"Баланс_склада_{DateTime.Now:yyyy-MM-dd}.xlsx"
+
+        );
+
     }
 
-    private async Task DownloadCsv(string csvContent, string fileName)
-    {
-        // === ИСПРАВЛЕНИЕ: добавляем UTF-8 BOM + charset ===
-        var preamble = System.Text.Encoding.UTF8.GetPreamble();           // EF BB BF
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-
-        var fullBytes = new byte[preamble.Length + bytes.Length];
-        preamble.CopyTo(fullBytes, 0);
-        bytes.CopyTo(fullBytes, preamble.Length);
-
-        var base64 = Convert.ToBase64String(fullBytes);
-
-        await JS.InvokeVoidAsync("downloadFile",
-            $"data:text/csv;charset=utf-8;base64,{base64}",
-            fileName);
-    }
 }
