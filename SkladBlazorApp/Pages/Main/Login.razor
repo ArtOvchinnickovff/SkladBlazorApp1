@@ -52,16 +52,16 @@
                              ?? new LoginResponse();
 
 
-                if (!string.IsNullOrEmpty(result.token))    
-{
-                    // 1️⃣ Сохраняем токен
-                    await JS.InvokeVoidAsync("localStorage.setItem", "authToken", result.token);    
+                if (!string.IsNullOrEmpty(result.token))
+                {
+                    // сохраняем токен
+                    await JS.InvokeVoidAsync("localStorage.setItem", "authToken", result.token);
 
-                    // 2️⃣ Уведомляем провайдер, чтобы CascadingAuthenticationState обновился
+                    // обновляем состояние авторизации
                     ((CustomAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(result.token);
 
-                    // 3️⃣ Редирект на страницу товаров
-                    Navigation.NavigateTo("/products"); // <-- без true, чтобы не было hard reload
+                    // редирект на главную
+                    Navigation.NavigateTo("/");
                 }
                 else
                 {

@@ -1,0 +1,201 @@
+﻿@page "/"
+@attribute [Authorize(Roles = "Admin,Manager")]
+@using Microsoft.AspNetCore.Authorization
+@using SkladBlazorApp.Shared.Models
+@using SkladBlazorApp.Shared.ModelsDTO.ModelsDTO.WarehouseOperations
+@using SkladBlazorApp.Shared.Enums
+@using System.Security.Claims
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView Roles="Admin,Manager" Context="authContext">
+    <Authorized Context="authContext">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">@HeaderText</h3>
+            <span class="badge bg-secondary fs-6">Добро пожаловать, @User.Identity?.Name</span>
+        </div>
+
+        <!-- KPI КАРТОЧКИ -->
+        <div class="row g-4 mb-5">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white shadow">
+                    <div class="card-body">
+                        <h6 class="opacity-75">Всего товаров</h6>
+                        <h2 class="mb-0">@totalProducts</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-success text-white shadow">
+                    <div class="card-body">
+                        <h6 class="opacity-75">Стоимость склада</h6>
+                        <h2 class="mb-0">@totalValue.ToString("N0") ₽</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-warning text-dark shadow">
+                    <div class="card-body">
+                        <h6 class="opacity-75">Низкий остаток</h6>
+                        <h2 class="mb-0 text-danger">@lowStockCount</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-info text-white shadow">
+                    <div class="card-body">
+                        <h6 class="opacity-75">Операций сегодня</h6>
+                        <h2 class="mb-0">@todayOperations</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- ТОВАРЫ С НИЗКИМ ОСТАТКОМ -->
+            <div class="col-lg-5">
+                <h5 class="mb-3">⚠️ Товары с низким остатком (меньше 10 шт)</h5>
+                <div class="card shadow">
+                    <div class="card-body p-0">
+                        @if (lowStock.Any())
+                        {
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr><th>Товар</th><th class="text-end">Остаток</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in lowStock)
+                                    {
+                                        <tr>
+                                            <td>@p.Name <small>(@p.ArticleNumber)</small></td>
+                                            <td class="text-end fw-bold text-danger">@p.Quantity @p.Unit</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="p-5 text-center text-success">🎉 Все остатки в норме!</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ПОСЛЕДНИЕ ОПЕРАЦИИ -->
+            <div class="col-lg-7">
+                <h5 class="mb-3">📋 Последние операции на складе</h5>
+                <div class="card shadow">
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Товар</th>
+                                    <th>Тип</th>
+                                    <th class="text-end">Количество</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var op in recentOperations)
+                                {
+                                    <tr>
+                                        <td>@op.Date.ToString("dd.MM HH:mm")</td>
+                                        <td>@op.ProductName</td>
+                                        <td class="@GetOperationClass(op.OperationType)">@GetOperationName(op.OperationType)</td>
+                                        <td class="text-end">@op.Quantity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- БЫСТРЫЕ ДЕЙСТВИЯ -->
+        <div class="mt-5 text-center">
+            <h5 class="mb-3">🚀 Быстрые действия</h5>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <button class="btn btn-primary btn-lg px-4" @onclick="GoToOperations">
+                    Приход / Расход / Инвентаризация
+                </button>
+                <button class="btn btn-success btn-lg px-4" @onclick="GoToReports">
+                    📊 Отчёты и аналитика
+                </button>
+                <button class="btn btn-dark btn-lg px-4" @onclick="GoToProducts">
+                    📦 Управление товарами
+                </button>
+
+                @if (IsAdmin)
+                {
+                    <button class="btn btn-danger btn-lg px-4" @onclick="GoToUsers">
+                        👤 Пользователи (Админ)
+                    </button>
+                }
+            </div>
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="text-center mt-5">
+            <h2>Добро пожаловать в систему складского учёта!</h2>
+            <p class="lead">Пожалуйста, авторизуйтесь для продолжения работы.</p>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private int totalProducts;
+    private decimal totalValue;
+    private int lowStockCount;
+    private int todayOperations;
+    private List<Product> lowStock = new();
+    private List<WarehouseOperationDto> recentOperations = new();
+
+    private ClaimsPrincipal User;
+    private bool IsAdmin => User?.IsInRole("Admin") ?? false;
+    private string HeaderText => IsAdmin ? "🛠 Административная панель" : "🏭 Операционная панель склада";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        User = authState.User;
+
+        var products = await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
+        var history = await Http.GetFromJsonAsync<List<WarehouseOperationDto>>("api/warehouse/history/0") ?? new();
+
+        totalProducts = products.Count;
+        totalValue = products.Sum(p => p.Quantity * p.Price);
+        lowStock = products.Where(p => p.Quantity < 10).OrderBy(p => p.Quantity).Take(5).ToList();
+        lowStockCount = lowStock.Count;
+
+        var today = DateTime.UtcNow.Date;
+        todayOperations = history.Count(o => o.Date.Date == today);
+        recentOperations = history.OrderByDescending(o => o.Date).Take(5).ToList();
+    }
+
+    private string GetOperationClass(WarehouseOperationType type) => type switch
+    {
+        WarehouseOperationType.Incoming => "text-success",
+        WarehouseOperationType.Outgoing => "text-danger",
+        WarehouseOperationType.InventoryAdjust => "text-primary",
+        _ => ""
+    };
+
+    private string GetOperationName(WarehouseOperationType type) => type switch
+    {
+        WarehouseOperationType.Incoming => "Приход",
+        WarehouseOperationType.Outgoing => "Расход",
+        WarehouseOperationType.InventoryAdjust => "Инвентаризация",
+        _ => type.ToString()
+    };
+
+    // Навигация
+    private void GoToOperations() => Nav.NavigateTo("/operations");
+    private void GoToReports() => Nav.NavigateTo("/reports");
+    private void GoToProducts() => Nav.NavigateTo("/products");
+    private void GoToUsers() => Nav.NavigateTo("/users");
+}
