@@ -19,59 +19,51 @@
 
         <AuthorizeView Context="auth">
             <Authorized>
-
+                @* Все страницы для авторизованных *@
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="oi oi-home" aria-hidden="true"></span> Главная
+                        Dashboard
                     </NavLink>
                 </div>
-
-               
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="products">
-                        Товары
+                        Products
                     </NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="categories">Категории</NavLink>
+                    <NavLink class="nav-link" href="categories">Categories</NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="operations">
-                        Складские операции
-                    </NavLink>
+                    <NavLink class="nav-link" href="operations">Operations</NavLink>
                 </div>
 
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="reports">
-                        <span class="oi oi-document" aria-hidden="true"></span> Отчеты
-                    </NavLink>
+                    <NavLink class="nav-link" href="reports">Reports</NavLink>
                 </div>
 
-                <AuthorizeView Roles="Admin" Context="admin">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="users">
-                                Пользователи
-                            </NavLink>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
+                @* Только Admin *@
+                @if (auth.User.IsInRole("Admin"))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="users">Users</NavLink>
+                    </div>
+                }
 
+                @* Кнопка выхода *@
                 <div class="nav-item px-3">
                     <button class="btn btn-link nav-link text-danger" @onclick="Logout">
-                        Выйти
+                        Logout
                     </button>
                 </div>
-
             </Authorized>
 
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="login">
-                        Войти
+                        Login
                     </NavLink>
                 </div>
             </NotAuthorized>

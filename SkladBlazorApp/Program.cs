@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
+
 using SkladBlazorApp;
 using SkladBlazorApp.Client.Services;
 
@@ -11,6 +12,9 @@ using SkladBlazorApp.Client.Services;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+
+
+
 
 builder.Services.AddScoped(sp =>
 {

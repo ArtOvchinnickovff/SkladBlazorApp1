@@ -23,38 +23,30 @@
                     <DataAnnotationsValidator />
 
                     <div class="row">
-
                         <div class="col">
                             <InputText class="form-control"
                                        @bind-Value="currentCategory.Name"
                                        placeholder="Название категории" />
                         </div>
-
                         <div class="col">
                             <InputText class="form-control"
                                        @bind-Value="currentCategory.Description"
                                        placeholder="Описание" />
                         </div>
-
                     </div>
 
                     <button type="submit" class="btn btn-primary mt-3">
                         Сохранить
                     </button>
-
-                    <button type="button"
-                            class="btn btn-secondary mt-3 ms-2"
-                            @onclick="CancelEdit">
+                    <button type="button" class="btn btn-secondary mt-3 ms-2" @onclick="CancelEdit">
                         Отмена
                     </button>
-
                 </EditForm>
 
             </div>
         }
 
         <table class="table table-striped">
-
             <thead>
                 <tr>
                     <th>Название</th>
@@ -62,39 +54,28 @@
                     <th></th>
                 </tr>
             </thead>
-
             <tbody>
-
                 @foreach (var category in categories)
                 {
                     <tr>
-
                         <td>@category.Name</td>
                         <td>@category.Description</td>
-
                         <td>
-
-                            <button class="btn btn-sm btn-warning"
-                                    @onclick="() => EditCategory(category)">
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditCategory(category)">
                                 Ред.
                             </button>
 
                             <AuthorizeView Roles="Admin">
                                 <Authorized>
-
-                                    <button class="btn btn-sm btn-danger ms-2"
-                                            @onclick="() => DeleteCategory(category.Id)">
+                                    <button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteCategory(category.Id)">
                                         Удалить
                                     </button>
-
                                 </Authorized>
                             </AuthorizeView>
 
                         </td>
-
                     </tr>
                 }
-
             </tbody>
         </table>
 
@@ -103,15 +84,12 @@
     <NotAuthorized>
         <p class="text-danger">Доступ запрещён</p>
     </NotAuthorized>
-
 </AuthorizeView>
 
 @code {
 
     private List<CategoryDto> categories = new();
-
     private CategoryDto currentCategory = new();
-
     private bool showForm = false;
 
     protected override async Task OnInitializedAsync()
@@ -145,13 +123,9 @@
     private async Task SaveCategory()
     {
         if (currentCategory.Id == 0)
-        {
             await Http.PostAsJsonAsync("api/categories", currentCategory);
-        }
         else
-        {
             await Http.PutAsJsonAsync($"api/categories/{currentCategory.Id}", currentCategory);
-        }
 
         showForm = false;
         await LoadCategories();
@@ -171,9 +145,7 @@
     public class CategoryDto
     {
         public int Id { get; set; }
-
         public string Name { get; set; } = "";
-
         public string Description { get; set; } = "";
     }
 

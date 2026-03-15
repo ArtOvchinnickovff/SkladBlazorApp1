@@ -1,16 +1,114 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@using Microsoft.AspNetCore.Components.Authorization
+@using SkladBlazorApp.Client.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+@if (!IsLoginPage)
+{
+    <div class="layout">
+
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <h3>Складские операции</h3>
+
+            <AuthorizeView Context="auth">
+                <Authorized>
+                    <ul>
+                        <li><NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Главная</NavLink></li>
+                        <li><NavLink class="nav-link" href="/products">Товары</NavLink></li>
+                        <li><NavLink class="nav-link" href="/categories">Категории</NavLink></li>
+                        <li><NavLink class="nav-link" href="/operations">Операции</NavLink></li>
+                        <li><NavLink class="nav-link" href="/reports">Отчеты</NavLink></li>
+
+                        @if (auth.User.IsInRole("Admin"))
+                        {
+                            <li><NavLink class="nav-link" href="/users">Пользователи</NavLink></li>
+                        }
+
+                        <li>
+                            <button class="logout" @onclick="Logout">Выход</button>
+                        </li>
+                    </ul>
+                </Authorized>
+            </AuthorizeView>
+        </nav>
+
+        <!-- Main content -->
+        <div class="main">
+            <header class="topbar">
+                <div class="user-info">
+                    <AuthorizeView Context="auth">
+                        <Authorized>
+                            <span>Добро пожаловать, @auth.User.Identity?.Name</span>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </header>
+
+            <main class="content">
+                @Body
+            </main>
         </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
+    </div>
+}
+else
+{
+    <!-- Только страница логина -->
+    <main class="content">
+        @Body
     </main>
-</div>
+}
+
+<style>
+    .layout {
+        display: flex;
+        height: 100vh;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .sidebar {
+        width: 230px;
+        background-color: #1E293B;
+        color: #F1F5F9;
+        padding: 1.2rem;
+    }
+
+    .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #f5f5f5;
+    }
+
+    .topbar {
+        height: 60px;
+        background-color: #fff;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 1rem;
+    }
+
+    .content {
+        padding: 2rem;
+    }
+</style>
+
+@code {
+
+    private bool IsLoginPage =>
+        Navigation.Uri.Contains("/login");
+
+    private async Task Logout()
+    {
+        await JS.InvokeVoidAsync("localStorage.removeItem", "authToken");
+
+        if (AuthStateProvider is CustomAuthenticationStateProvider provider)
+            provider.NotifyUserLogout();
+
+        Navigation.NavigateTo("/login", true);
+    }
+
+}

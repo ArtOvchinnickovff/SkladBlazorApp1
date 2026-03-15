@@ -36,15 +36,12 @@
                         <div class="col">
                             <InputText class="form-control" @bind-Value="currentProduct.Name" placeholder="Название" />
                         </div>
-
                         <div class="col">
                             <InputText class="form-control" @bind-Value="currentProduct.Category" placeholder="Категория" />
                         </div>
-
                         <div class="col">
                             <InputNumber class="form-control" @bind-Value="currentProduct.Quantity" placeholder="Количество" />
                         </div>
-
                         <div class="col">
                             <InputNumber class="form-control" @bind-Value="currentProduct.Price" placeholder="Цена" />
                         </div>
@@ -78,15 +75,13 @@
                         <td>@product.Quantity</td>
                         <td>@product.Price</td>
                         <td>
-                            <button class="btn btn-sm btn-warning"
-                                    @onclick="() => EditProduct(product)">
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditProduct(product)">
                                 Ред.
                             </button>
 
                             <AuthorizeView Roles="Admin">
                                 <Authorized>
-                                    <button class="btn btn-sm btn-danger ms-2"
-                                            @onclick="() => DeleteProduct(product.Id)">
+                                    <button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteProduct(product.Id)">
                                         Удалить
                                     </button>
                                 </Authorized>
@@ -105,18 +100,13 @@
 </AuthorizeView>
 
 @code {
-
     private List<ProductDto> products = new();
     private List<ProductDto> filteredProducts = new();
-
     private ProductDto currentProduct = new();
     private bool showForm = false;
     private string selectedCategory = "";
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadProducts();
-    }
+    protected override async Task OnInitializedAsync() => await LoadProducts();
 
     private async Task LoadProducts()
     {
@@ -126,12 +116,9 @@
 
     private void ApplyFilter()
     {
-        if (string.IsNullOrEmpty(selectedCategory))
-            filteredProducts = products;
-        else
-            filteredProducts = products
-                .Where(p => p.Category == selectedCategory)
-                .ToList();
+        filteredProducts = string.IsNullOrEmpty(selectedCategory)
+            ? products
+            : products.Where(p => p.Category == selectedCategory).ToList();
     }
 
     private void FilterChanged(ChangeEventArgs e)
@@ -161,17 +148,12 @@
 
     private async Task SaveProduct()
     {
-        if (currentProduct.Quantity < 0)
-            return; // защита от минуса
+        if (currentProduct.Quantity < 0) return;
 
         if (currentProduct.Id == 0)
-        {
             await Http.PostAsJsonAsync("api/products", currentProduct);
-        }
         else
-        {
             await Http.PutAsJsonAsync($"api/products/{currentProduct.Id}", currentProduct);
-        }
 
         showForm = false;
         await LoadProducts();
@@ -183,10 +165,7 @@
         await LoadProducts();
     }
 
-    private void CancelEdit()
-    {
-        showForm = false;
-    }
+    private void CancelEdit() => showForm = false;
 
     public class ProductDto
     {
