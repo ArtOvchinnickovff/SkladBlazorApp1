@@ -18,4 +18,8 @@
     <ProjectReference Include="..\SkladBlazorApp.Shared\SkladBlazorApp.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\sample-data\" />
+  </ItemGroup>
+
 </Project>
