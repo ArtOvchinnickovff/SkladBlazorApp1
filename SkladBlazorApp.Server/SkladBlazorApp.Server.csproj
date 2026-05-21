@@ -9,7 +9,6 @@
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.22" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.27" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.22" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.22">
       <PrivateAssets>all</PrivateAssets>
@@ -20,7 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SkladBlazorApp.Shared\SkladBlazorApp.Shared.csproj" />
-    <ProjectReference Include="..\SkladBlazorApp\SkladBlazorApp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -10,18 +10,16 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Сервисы API
+// Add services to the container.
+
 builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddDbContext<SkladDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IWarehouseService, WarehouseService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-
-// Настройка Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -50,7 +48,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Настройка JWT
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -72,43 +69,41 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS (можно оставить для локальных тестов, но в облаке он уже не заблокирует Blazor)
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5012")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
+builder.Services.AddScoped<IReportService, ReportService>();
+
+
 var app = builder.Build();
 
-// 1. Обработка ошибок
+// Middleware для обработки исключений всегда в начале
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-// 2. ПОДКЛЮЧЕНИЕ ФРОНТЕНДА BLAZOR (Важно: до маршрутов и редиректов!)
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 
-app.UseRouting();
-
-app.UseCors();
-
+// Аутентификация перед авторизацией
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Показываем Swagger везде (удобно для проверки работы API на хостинге)
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-// 3. Маршруты контроллеров API
+app.UseCors();
+
 app.MapControllers();
 
-// 4. СЛИВ ВСЕХ ОСТАЛЬНЫХ ЗАПРОСОВ НА BLAZOR (Если это не API — отдаем index.html)
-app.MapFallbackToFile("index.html");
-
 app.Run();
+
